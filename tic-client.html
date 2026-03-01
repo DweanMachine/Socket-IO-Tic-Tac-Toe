@@ -1,0 +1,122 @@
+<!-- Tic Tac Toe Game -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h3 id="username"></h3>
+    <h5 id="role">You are: X</h5>
+    <div id="board">
+        <div class="cell" data-index="0"></div>
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div> 
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div> 
+        <div class="cell" data-index="8"></div>
+    </div>
+    <br>
+    <button id="start">Start</button>
+    <button id="reset">Reset</button>
+    <button id="toggle-btn">Disconnect</button>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: white;
+        }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 5px;
+            margin-top: 20px;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            border: 1px solid #bbb;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .cell:hover {
+            background-color: #c8c8c8;
+        }
+        button {
+            cursor: pointer;
+        }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+    <script> 
+        // Client Side JavaScript
+        const socket = io({
+            auth: {
+                serverOffset: 0
+            }
+        });
+
+        const cells = document.querySelectorAll('.cell');
+        const roomId = sessionStorage.getItem('room');
+        const role = sessionStorage.getItem('role');
+        const username = sessionStorage.getItem('username');
+
+        cells.forEach(cell => {
+            cell.addEventListener('click', (e) => {
+                if (e.target.textContent === '') {
+                    cell.textContent = role;
+                    socket.emit('move', { index: e.target.dataset.index, username: sessionStorage.getItem('username'),  elementText: e.target.textContent });
+                }
+            });
+        });
+
+        socket.on('opponentMove', (data) => {
+            console.log("Received opponent move:", data.move);
+            //Handle the move on opponent's side
+            const targetCell = document.querySelector(`.cell[data-index="${data.move.index}"]`);
+            targetCell.textContent = role === 'X' ? 'O' : 'X'; // Display the opponent's move
+        });
+        
+        const usernameDisplay = document.getElementById('username');
+        usernameDisplay.innerText = `Username: ${username}`;
+
+        const roleDisplay = document.getElementById('role');
+        roleDisplay.innerText = `You are: ${role}`;
+
+        socket.on('hello', (arg) => {
+            console.log(arg);
+        });
+
+        const toggleButton = document.getElementById('toggle-btn');
+
+        toggleButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (socket.connected) {
+                toggleButton.innerText = 'Connect';
+                socket.disconnect();
+            } else {
+                toggleButton.innerText = 'Disconnect';
+                socket.connect();
+            }
+        });
+
+        socket.on('disconnect', (data) => {
+            console.log('Disconnected from server');
+            window.location.href = '/wait?username=' + encodeURIComponent(data.username); 
+        });
+
+        socket.on('connect', () => {
+            socket.emit('passUsername', { username, page: 'Game' });
+            socket.emit('rejoinRoom', { username, roomId });
+        });
+    </script>
+</body>
+</html>
