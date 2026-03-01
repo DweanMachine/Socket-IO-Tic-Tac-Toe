@@ -1,0 +1,26 @@
+{
+  "name": "socket-io-tic-tac-toe",
+  "version": "1.0.0",
+  "description": "A game of tic tac toe which can be played between two users in real time.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DweanMachine/Socket-IO-Tic-Tac-Toe.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/DweanMachine/Socket-IO-Tic-Tac-Toe/issues"
+  },
+  "homepage": "https://github.com/DweanMachine/Socket-IO-Tic-Tac-Toe#readme",
+  "dependencies": {
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  }
+}
