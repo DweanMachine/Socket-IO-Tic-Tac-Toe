@@ -11,6 +11,7 @@ const io = new Server(server, {
 });
 
 let opponent = null;
+rooms = {};
 
 io.on('connection', (user) => {
   console.log("A user connected!");
@@ -44,6 +45,7 @@ io.on('connection', (user) => {
       user.emit('waitingForOpponent');
     } else {
       const roomId = `room_${opponent.id}`;
+      rooms[roomId] = { player1: opponent.username, player2: user.username, currentTurn: opponent.username };
 
       //player connected to the room
       user.roomId = roomId;
@@ -56,8 +58,8 @@ io.on('connection', (user) => {
       opponent.role = 'O';
       
       // Notify both players that an opponent has been found
-      user.emit('opponentFound', { roomId, role: user.role });
-      opponent.emit('opponentFound', { roomId, role: opponent.role });
+      user.emit('opponentFound', {roomId, role: user.role});
+      opponent.emit('opponentFound', {roomId, role: opponent.role});
 
       // Log the room assignment
       console.log(`${user.username} and ${opponent.username} are in ${roomId}`);
@@ -72,13 +74,33 @@ io.on('connection', (user) => {
 
   // Listen for moves from the clients
   user.on('move', (data) => {
-    console.log(data.username, "moved at cell index:", data.index);
-    data.elementText = 'X'; // Example move, replace with actual game logic
     // Broadcast the move to the opponent in the same room
-    user.to(user.roomId).emit('opponentMove', { move : data });
+    user.to(user.roomId).emit('opponentMove', {move: data});
+    console.log(data.username, "moved at cell index:", data.index);
+  });
+
+  user.on('gameOver', (data) => {
+    // Notify the opponent that the game is over
+    io.to(user.roomId).emit('gameOver', {winner: data.username});
+    if (data.username == "draw") {
+      console.log("The game ended in a draw.");
+    } else {
+      console.log(`${data.username} has won the game.`);
+    }
+  });
+
+  user.on('forfeitGame', (data) => {
+    // Notify all users in the room that the game is forfeited
+    io.to(user.roomId).emit('forfeitGame', {username: data.username});
+    console.log(`${data.username} has forfeited the game.`);
+  });
+  
+  user.on('switchTurn', (data) => {
+    io.to(user.roomId).emit('switchTurn', {username: user.username, index: data.index});
+    console.log(`It's now ${user.username}'s turn.`);
   });
 });
-  
+
 
 app.get('/', (req, res) => {
   res.sendFile(join(__dirname, 'login-client.html'));

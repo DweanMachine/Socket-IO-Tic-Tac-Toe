@@ -1,6 +1,6 @@
 <!-- Tic Tac Toe Game -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en"> 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +8,7 @@
 </head>
 <body>
     <h3 id="username"></h3>
-    <h5 id="role">You are: X</h5>
+    <h5 id="role"></h5>
     <div id="board">
         <div class="cell" data-index="0"></div>
         <div class="cell" data-index="1"></div>
@@ -21,8 +21,7 @@
         <div class="cell" data-index="8"></div>
     </div>
     <br>
-    <button id="start">Start</button>
-    <button id="reset">Reset</button>
+    <button id="forfeit">Forfeit</button>
     <button id="toggle-btn">Disconnect</button>
     <style>
         body {
@@ -57,7 +56,7 @@
     </style>
     <script src="/socket.io/socket.io.js"></script>
     <script> 
-        // Client Side JavaScript
+        //Client Side JavaScript 
         const socket = io({
             auth: {
                 serverOffset: 0
@@ -67,33 +66,76 @@
         const cells = document.querySelectorAll('.cell');
         const roomId = sessionStorage.getItem('room');
         const role = sessionStorage.getItem('role');
+        (role == 'X' ? opponentRole = 'O' : opponentRole = 'X')
+        var isMyTurn = (role === 'X'); //X always starts first
+
         const username = sessionStorage.getItem('username');
 
         cells.forEach(cell => {
             cell.addEventListener('click', (e) => {
-                if (e.target.textContent === '') {
+                if (e.target.textContent === '' && isMyTurn) {
                     cell.textContent = role;
                     socket.emit('move', { index: e.target.dataset.index, username: sessionStorage.getItem('username'),  elementText: e.target.textContent });
+                }
+                if (!isMyTurn) {
+                    alert("It's not your turn!");
+                    return;
+                }
+                const winningCombinations = [
+                    [0, 1, 2], [3, 4, 5], [6, 7, 8], //row win-conditions
+                    [0, 3, 6], [1, 4, 7], [2, 5, 8], //column win-conditions
+                    [0, 4, 8], [2, 4, 6]             //diagonal win-conditions
+                ];
+               
+                if (winningCombinations.some(combination => combination.every(index => cells[index].textContent === role))) {
+                    socket.emit('gameOver', {username: sessionStorage.getItem('username')});
+                } else if (winningCombinations.some(combination => combination.every(index => cells[index].textContent === opponentRole))) {
+                    socket.emit('gameOver', {username: sessionStorage.getItem('username')});
+                } else if (Array.from(cells).every(cell => cell.textContent !== '')) {
+                    socket.emit('gameOver', {username: "draw"});
                 }
             });
         });
 
+        socket.on('gameOver', (data) => {
+            if (data.winner === username) {
+                alert("Congratulations! You won the game!");
+            } else if (data.winner === "draw") {
+                alert("The game ended in a draw!");
+            } else {
+                alert("Sorry, you lost. Better luck next time!");
+            }
+            cells.forEach(cell => cell.textContent = '');
+            if (role === 'X') {
+                isMyTurn = true; //X starts first
+            } else {
+                isMyTurn = false;
+            }
+        });
         socket.on('opponentMove', (data) => {
-            console.log("Received opponent move:", data.move);
             //Handle the move on opponent's side
             const targetCell = document.querySelector(`.cell[data-index="${data.move.index}"]`);
-            targetCell.textContent = role === 'X' ? 'O' : 'X'; // Display the opponent's move
+            targetCell.textContent = role === 'X' ? 'O' : 'X'; //Display the opponent's move
+            console.log("Opponent moved at cell index:", data.move.index);
+            socket.emit('switchTurn', { username: sessionStorage.getItem('username'), index: data.move.index });
         });
         
+        socket.on('switchTurn', (data) => {
+            console.log("Switching turn:", data);
+            if (data.username === username) {
+                console.log("It's your turn!"); //Player's turn
+                isMyTurn = true;
+            } else {
+                console.log("Waiting for opponent's turn..."); //Opponent's turn
+                isMyTurn = false;
+            }
+        });
+
         const usernameDisplay = document.getElementById('username');
         usernameDisplay.innerText = `Username: ${username}`;
 
         const roleDisplay = document.getElementById('role');
         roleDisplay.innerText = `You are: ${role}`;
-
-        socket.on('hello', (arg) => {
-            console.log(arg);
-        });
 
         const toggleButton = document.getElementById('toggle-btn');
 
@@ -107,10 +149,25 @@
                 socket.connect();
             }
         });
-
+        
+        const forfeitButton = document.getElementById('forfeit');
+        forfeitButton.addEventListener('click', () => {
+            socket.emit('forfeitGame', {username: sessionStorage.getItem('username')});
+        });
+    
         socket.on('disconnect', (data) => {
             console.log('Disconnected from server');
             window.location.href = '/wait?username=' + encodeURIComponent(data.username); 
+        });
+
+        socket.on('forfeitGame', (data) => {
+            alert(`${data.username} has forfeited the game. You win!`);
+            cells.forEach(cell => cell.textContent = '');
+            if (role === 'X') {
+                isMyTurn = true; //X starts first
+            } else {
+                isMyTurn = false;
+            }
         });
 
         socket.on('connect', () => {
