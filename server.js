@@ -90,9 +90,16 @@ io.on('connection', (user) => {
   });
 
   user.on('forfeitGame', (data) => {
-    // Notify all users in the room that the game is forfeited
-    io.to(user.roomId).emit('forfeitGame', {username: data.username});
+    // Notify everyone else in the room
+    user.to(user.roomId).emit('forfeitGame', { username: data.username });
     console.log(`${data.username} has forfeited the game.`);
+
+    // Clean up the room
+    delete rooms[user.roomId];
+
+    // Remove both players from the room
+    io.in(user.roomId).socketsLeave(user.roomId);
+    console.log(`Room ${user.roomId} has been closed.`);
   });
   
   user.on('switchTurn', (data) => {
@@ -103,17 +110,17 @@ io.on('connection', (user) => {
 
 
 app.get('/', (req, res) => {
-  res.sendFile(join(__dirname, 'login-client.html'));
+  res.sendFile(join(__dirname, 'public/login-client.html'));
 });
 
 app.get('/game', (req, res) => {
   username = req.query.username;
-  res.sendFile(join(__dirname, 'tic-client.html'));
+  res.sendFile(join(__dirname, 'public/tic-client.html'));
 });
 
 app.get('/wait', (req, res) => {
   username = req.query.username;
-  res.sendFile(join(__dirname, 'waiting-client.html'));
+  res.sendFile(join(__dirname, 'public/waiting-client.html'));
 });
 
 server.listen(3000, () => {

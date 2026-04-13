@@ -1,0 +1,74 @@
+<!-- Waiting Room Page -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waiting Room</title>
+</head>
+<body>
+    <h3 id="username"></h3>
+    <p>Waiting for another player to join<span id="dots">...</span></p>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-image: linear-gradient(135deg, orange, indigo);
+        }
+        h3 {
+            color: white;
+        }
+        p {
+            font-size: 18px;
+            color: #eee;
+        }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io({
+            auth: {
+                serverOffset: 0
+            }
+        });
+        const dots = document.getElementById('dots');
+        let dotCount = 0;
+        setInterval(() => { //Animate the dots to show waiting status
+            dotCount = (dotCount + 1) % 4;
+            dots.innerText = '.'.repeat(dotCount);
+        }, 500);
+
+        const usernameDisplay = document.getElementById('username');
+        const username = sessionStorage.getItem('username');
+        usernameDisplay.innerText = `Username: ${username}`;
+        console.log('Username from sessionStorage:', username);
+
+        socket.on('connect', () => {
+            socket.emit('passUsername', { username, page: 'waitroom' });
+        });
+
+        socket.on('userCreated', () => {
+            socket.emit('findOpponent', { username });
+        });
+
+        socket.on('opponentFound', (data) => {
+            console.log('Opponent found:', data);
+            sessionStorage.setItem('room', data.roomId);
+            sessionStorage.setItem('role', data.role); //'X' or 'O'
+            window.location.href = '/game?roomid=' + encodeURIComponent(data.roomId) + '&username=' + encodeURIComponent(username);
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+            alert('Disconnected from server. Please refresh the page to try again.');
+        });
+
+        socket.on('waitingForOpponent', () => {
+            console.log('Still waiting for opponent...');
+        });
+    </script>
+</body>
+</html>

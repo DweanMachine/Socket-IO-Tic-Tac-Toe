@@ -1,6 +1,27 @@
 # Socket-IO-Tic-Tac-Toe
-A game of tic tac toe which can be played between two users in real time. This project uses JavaScript/HTML along with Socket IO which must be installed before running.
+Real-time two-player tic-tac-toe in the browser, powered by Socket.IO.
 
-Execution: **node server.js**
 
-Completed on March 2, 2026
+## Prerequisites
+Node.js v18+ 
+npm
+
+## Installation
+``` 
+git clone https://github.com/DweanMachine/socket-io-tic-tac-toe
+cd socket-io-tic-tac-toe
+npm install
+```
+
+## Execution
+```
+npm start
+```
+
+## Project Layout
+```
+server.js ............. Express & Socket.IO server, game logic
+login-client.html ..... Player name & join screen
+waiting-client.html ... Waiting for opponent screen
+tic-client.html ....... Game board UI
+```
